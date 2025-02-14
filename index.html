@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi Setup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #f4f4f4;
+    }
+    .container {
+      width: 320px;
+      min-height: 20vh;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      margin-top: 20px;
+      position: relative;
+    }
+    .wifi-list-container {
+      min-height: 4vh;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: white;
+      margin-bottom: 8px;
+      text-align: left;
+      cursor: pointer;
+    }
+    li:hover {
+      background: #e6f7ff;
+      border-color: #007BFF;
+    }
+    label, input, h1 {
+      display: block;
+      margin-bottom: 10px;
+    }
+    input[type="text"], input[type="password"] {
+      width: calc(100% - 16px);
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    input[type="submit"]:hover {
+      background: #0056b3;
+    }
+
+    input[type="submit"]:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    /* Bottom Sheet Styles */
+    .bottom-sheet {
+      position: fixed;
+      bottom: -300px; /* Initially hidden below the screen */
+      width: 90%;
+      background-color: white;
+      box-shadow: 0px -5px 15px rgba(0, 0, 0, 0.2);
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      padding: 20px;
+      transition: bottom 0.3s ease;
+      z-index: 100;
+    }
+
+    .bottom-sheet.active {
+      bottom: 0; /* Show when active */
+    }
+
+    .close-btn {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      float: right;
+    }
+
+    .close-btn:hover,
+    .close-btn:focus {
+      color: black;
+    }
+
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      max-width: 500px;
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      display: none; /* Initially hidden */
+      z-index: 100; /* Higher z-index to make sure it appears on top */
+      border-radius: 8px;
+    }
+
+    /* Close Button Styles */
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: #ccc;
+      border: none;
+      border-radius: 50%;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .close-btn:hover {
+      background-color: #ff4d4d;
+      color: white;
+    }
+
+    /* Overlay Styles */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none; /* Initially hidden */
+      z-index: 50; /* Overlay should be below the modal */
+    }
+
+    /* Show Modal and Overlay */
+    .overlay.active, .modal.active {
+      display: block;
+    }
+
+    /* Loading Screen Styles */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 200;
+    }
+
+    .loading-overlay.active {
+      display: flex;
+    }
+
+    .loading-text {
+      font-size: 18px;
+      color: white;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 6px solid #ccc;
+      border-top-color: #007BFF;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Main Wi-Fi Setup Form -->
+  <div class="container">
+    <h1>Connect To WiFi</h1>
+    <h2>Available Networks:</h2>
+    <div class="wifi-list-container">
+      <ul id="wifi-list">
+        <!-- Example Wi-Fi Networks -->
+        <li onclick="selectWifi('Network1')">Network 1</li>
+        <li onclick="selectWifi('Network2')">Network 2</li>
+        <li onclick="selectWifi('Network3')">Network 3</li>
+      </ul>
+    </div>
+    <form id="wifi-form">
+      <label for="ssid">SSID:</label>
+      <input type="text" id="ssid" name="ssid" placeholder="Enter SSID" oninput="toggleConnectButton()">
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" placeholder="Enter Password" oninput="toggleConnectButton()">
+      <input type="submit" value="Connect" id="connect-button" disabled>
+    </form>
+  </div>
+
+  <!-- Loading Screen -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-text">Connecting</div>
+  </div>
+
+  <!-- Overlay to close the bottom sheet if clicked outside -->
+  <div id="overlay" class="overlay" onclick="closeBottomSheet()"></div>
+
+  <!-- Bottom Sheet for password input -->
+  <div id="bottom-sheet" class="bottom-sheet">
+    <span class="close-btn" onclick="closeBottomSheet()">&times;</span>
+    <h2>Insert Password for <span id="selected-ssid">SSID</span></h2>
+    <form id="sheet">
+      <label for="password-sheet">Password:</label>
+      <input type="password" id="password-sheet" name="password" placeholder="Enter Password" oninput="toggleConnectButtonSheet()">
+      <input type="hidden" id="ssid-sheet" name="ssid">
+      <input type="submit" value="Connect" id="bottom-sheet-connect-button" disabled>
+    </form>
+  </div>
+
+  <!-- Modal Overlay and Content -->
+  <div id="overlay-modal" class="overlay" onclick="closeModal()"></div>
+
+  <div id="modal" class="modal">
+    <form id="modal-form" onsubmit="checkSubmit(event)">
+      <span class="close-btn" onclick="closeModal()">×</span>
+      <h2 id="modal-title">Connection Status</h2>
+      <p id="modal-message"></p>
+      <input type="submit" value="Ok">
+    </form>
+  </div>
+
+  <script>
+
+    let dots = 0;
+    let loadingInterval;
+
+    // Prevent the 'Enter' key from submitting the form or any other form
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('keydown', function(event) {
+        if (event.key === "Enter") {
+          event.preventDefault(); // Prevent form submission on Enter key
+          input.blur();           // Hide keyboard
+        }
+      });
+    });
+
+    // Submit payload
+    function handleSubmit(payload) {
+      // Show Loading Screen
+      showLoading()
+
+      // Send data as JSON body
+      fetch('/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+       // Expecting JSON response from the server
+      .then(response => response.json())
+      .then(data => {
+        hideLoading()
+        openModal(data.title, data.message);
+      })
+      .catch(err => {
+        openModal('Error: ' + err.message);
+      });
+    }
+
+    // Handle the form submission
+    document.getElementById('wifi-form').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      // Get Values and Create the payload
+      const payload = {
+        ssid: document.getElementById('ssid').value,
+        password: document.getElementById('password').value
+      };
+
+      // Submit ssid and passowrd
+      handleSubmit(payload)
+    });
+
+    // Handle the form submission in bottom sheet
+    document.getElementById('sheet').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      // Get Values and Create the payload
+      const payload = {
+        ssid: document.getElementById('ssid-sheet').value,
+        password: document.getElementById('password-sheet').value
+      };
+
+      // Close Bottom Sheet
+      closeBottomSheet()
+
+      // Sumbit ssid and password
+      handleSubmit(payload)
+    });
+
+    // Enable/disable the "Connect" button based on SSID and password fields
+    function toggleConnectButton() {
+      // Get Values
+      const ssid = document.getElementById('ssid').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const connectButton = document.getElementById('connect-button');
+
+      // Enable button if both SSID and password are filled
+      if (ssid && password && !document.getElementById('overlay').classList.contains('active')) {
+        connectButton.disabled = false;
+        connectButton.style.backgroundColor = "#007BFF"; // Active color
+      } else {
+        connectButton.disabled = true;
+        connectButton.style.backgroundColor = "#ccc"; // Disabled color
+      }
+    }
+
+    // Enable/disable the "Connect" button based on SSID and password fields both on bottom sheet
+    function toggleConnectButtonSheet() {
+      // Get Values
+      const ssidHidden = document.getElementById('ssid-sheet').value.trim();
+      const passwordSheet = document.getElementById('password-sheet').value.trim();
+      const bottomSheetConnectButton = document.getElementById('bottom-sheet-connect-button');
+
+      // Enable button in bottom sheet if both SSID and password are filled
+      if (ssidHidden && passwordSheet && document.getElementById('overlay').classList.contains('active')) {
+        bottomSheetConnectButton.disabled = false;
+        bottomSheetConnectButton.style.backgroundColor = "#007BFF"; // Active color
+      } else {
+        bottomSheetConnectButton.disabled = true;
+        bottomSheetConnectButton.style.backgroundColor = "#ccc"; // Disabled color
+      }
+    }
+
+    // Open the bottom sheet
+    function openBottomSheet() {
+      document.getElementById("bottom-sheet").classList.add("active");
+      document.getElementById("overlay").classList.add("active");
+    }
+
+    // Close the bottom sheet
+    function closeBottomSheet() {
+      document.getElementById("bottom-sheet").classList.remove("active");
+      document.getElementById("overlay").classList.remove("active");
+      document.getElementById('password-sheet').value = '';
+    }
+
+    // Update the bottom sheet SSID and open it
+    function selectWifi(ssid) {
+      document.getElementById('selected-ssid').innerText = ssid;
+      document.getElementById('ssid-sheet').value = ssid;
+
+      // Show the bottom sheet and overlay
+      openBottomSheet()
+
+      setTimeout(function() {
+        document.getElementById('password-sheet').focus();
+      }, 300);
+
+      // Re-check connect button state
+      toggleConnectButton();
+    }
+
+    // Function to open modal with a custom message
+    function openModal(title, message) {
+      document.getElementById('modal-title').innerText = title; 
+      document.getElementById('modal-message').innerText = message;
+      document.getElementById('modal').classList.add('active');
+      document.getElementById('overlay-modal').classList.add('active');
+    }
+
+    // Function to close modal
+    function closeModal() {
+      document.getElementById('modal').classList.remove('active');
+      document.getElementById('overlay-modal').classList.remove('active');
+    }
+
+    // Function to show the loading screen
+    function showLoading() {
+      document.getElementById('loading-overlay').classList.add('active');
+      startLoadingAnimation(); // Start the animation
+    }
+
+    // Function to hide the loading screen
+    function hideLoading() {
+      stopLoadingAnimation(); // Stop the animation
+      document.getElementById('loading-overlay').classList.remove('active');
+    }
+
+    // Function to start the "Connecting..." text animation
+    function startLoadingAnimation() {
+      const loadingText = document.getElementById('loading-text');
+      loadingInterval = setInterval(() => {
+        dots = (dots + 1) % 4; // Cycle through 0, 1, 2, 3
+        loadingText.textContent = 'Connecting' + '.'.repeat(dots); // Update text with dots
+      }, 500); // Update every 500ms
+    }
+
+    // Function to stop the "Connecting..." text animation
+    function stopLoadingAnimation() {
+      clearInterval(loadingInterval);
+      dots = 0; // Reset dots
+      document.getElementById('loading-text').textContent = 'Connecting'; // Reset text
+    }
+
+    // Function to check Modal values
+    function setActionBeforeSubmit(event) {
+    event.preventDefault();
+    closeModal(); // Close the modal if condition isn't met
+  }
+
+  function checkSubmit(event) {
+    const modalTitle = document.getElementById("modal-title").textContent;
+    console.log(modalTitle);
+    if(!modalTitle.includes("Connected")) {
+      console.log("Hello");
+      event.preventDefault();
+      closeModal();
+    } else {
+      document.getElementById("modal-form").action = "/done";
+        document.getElementById("modal-form").method = "POST";
+    }
+  }
+  </script>
+
+</body>
+</html>

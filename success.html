@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiFi Setup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #f4f4f4;
+    }
+    .container {
+      width: 320px;
+      min-height: 20vh;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      margin-top: 20px;
+      position: relative;
+    }
+    .wifi-list-container {
+      min-height: 4vh;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      background: #f9f9f9;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    li {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: white;
+      margin-bottom: 8px;
+      text-align: left;
+      cursor: pointer;
+    }
+    li:hover {
+      background: #e6f7ff;
+      border-color: #007BFF;
+    }
+    label, input, h1 {
+      display: block;
+      margin-bottom: 10px;
+    }
+    input[type="text"], input[type="password"] {
+      width: calc(100% - 16px);
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    input[type="submit"]:hover {
+      background: #0056b3;
+    }
+
+    /* Disabled button style */
+    input[type="submit"]:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    /* Bottom Sheet Styles */
+    .bottom-sheet {
+      position: fixed;
+      bottom: -300px; /* Initially hidden below the screen */
+      width: 90%;
+      background-color: white;
+      box-shadow: 0px -5px 15px rgba(0, 0, 0, 0.2);
+      border-top-left-radius: 10px;
+      border-top-right-radius: 10px;
+      padding: 20px;
+      transition: bottom 0.3s ease;
+      z-index: 10;
+    }
+
+    .bottom-sheet.active {
+      bottom: 0; /* Show when active */
+    }
+
+    .close-btn {
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      float: right;
+    }
+
+    .close-btn:hover,
+    .close-btn:focus {
+      color: black;
+    }
+
+    /* Overlay to detect clicks outside of the bottom sheet */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4); /* Semi-transparent black */
+      z-index: 5;
+      display: none;
+    }
+
+    .overlay.active {
+      display: block;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Connect To WiFi</h1>
+    <h2>Available Networks:</h2>
+    <div class="wifi-list-container">
+      <ul id="wifi-list">
+        {{wifi_list}}
+      </ul>
+    </div>
+    <form id="wifi-form" action="/connect" method="POST">
+      <label for="ssid">SSID:</label>
+      <input type="text" id="ssid" name="ssid" placeholder="Enter SSID" oninput="toggleConnectButton()">
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" placeholder="Enter Password" oninput="toggleConnectButton()">
+      <input type="submit" value="Connect" id="connect-button" disabled>
+    </form>
+  </div>
+
+  <!-- Overlay to close the bottom sheet if clicked outside -->
+  <div id="overlay" class="overlay"></div>
+
+  <!-- Bottom Sheet for password input -->
+  <div id="bottom-sheet" class="bottom-sheet">
+    <span class="close-btn">&times;</span>
+    <h2>Insert Password for <span id="selected-ssid">SSID</span></h2>
+    <form id="password" action="/connect" method="POST">
+      <label for="password-bottom">Password:</label>
+      <input type="password" id="password-bottom" name="password" placeholder="Enter Password" oninput="toggleConnectButton()">
+      <input type="hidden" id="ssid-hidden" name="ssid">
+      <input type="submit" value="Connect" id="bottom-sheet-connect-button" disabled>
+    </form>
+  </div>
+
+  <script>
+    // Prevent the 'Enter' key from submitting the form or any other form
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('keydown', function(event) {
+        if (event.key === "Enter") {
+          event.preventDefault(); // Prevent form submission on Enter key
+          input.blur();           // Hide keyboard
+        }
+      });
+    });
+
+    // Close the bottom sheet
+    function closeBottomSheet() {
+      document.getElementById("bottom-sheet").classList.remove("active");
+      document.getElementById("overlay").classList.remove("active");
+      document.getElementById('password-bottom').value = '';
+    }
+
+    // Close the bottom sheet when the overlay is clicked
+    document.getElementById("overlay").addEventListener("click", closeBottomSheet);
+
+    // Update the bottom sheet SSID and open it
+    function selectWifi(ssid) {
+      document.getElementById('selected-ssid').innerText = ssid;
+      document.getElementById('ssid-hidden').value = ssid;
+
+      // Show the bottom sheet and overlay
+      document.getElementById("bottom-sheet").classList.add("active");
+      document.getElementById("overlay").classList.add("active");
+
+      setTimeout(function() {
+        document.getElementById('password-bottom').focus();
+      }, 300);
+
+      // Re-check connect button state
+      toggleConnectButton();
+    }
+
+    // Enable/disable the "Connect" button based on SSID and password fields
+    function toggleConnectButton() {
+      const ssid = document.getElementById('ssid').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const connectButton = document.getElementById('connect-button');
+
+      const ssidHidden = document.getElementById('ssid-hidden').value.trim();
+      const passwordBottom = document.getElementById('password-bottom').value.trim();
+      const bottomSheetConnectButton = document.getElementById('bottom-sheet-connect-button');
+
+      // Enable button if both SSID and password are filled
+      if ((ssid && password) || (ssidHidden && passwordBottom)) {
+        connectButton.disabled = false;
+        bottomSheetConnectButton.disabled = false;
+        connectButton.style.backgroundColor = "#007BFF"; // Active color
+        bottomSheetConnectButton.style.backgroundColor = "#007BFF"; // Active color
+      } else {
+        connectButton.disabled = true;
+        bottomSheetConnectButton.disabled = true;
+        connectButton.style.backgroundColor = "#ccc"; // Disabled color
+        bottomSheetConnectButton.style.backgroundColor = "#ccc"; // Disabled color
+      }
+    }
+  </script>
+</body>
+</html>
