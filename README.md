@@ -1,2 +1,17 @@
-# python_wifi_manager
-A simple Python test server that serves two HTML files demonstrating how to connect to the internet, intended for ESP32 boards. This project includes test cases for WiFi connections, making it useful for debugging and experimenting with network connectivity in a controlled environment.
+# Python WiFi Manager 🌐🐍
+
+**A cross-platform WiFi management utility** that simplifies network operations with powerful automation and diagnostics capabilities.
+
+## ✨ Key Features
+
+### 🔌 Connection Management
+- **One-click connections** to saved networks
+- **Priority-based auto-connect** to preferred networks
+- **Batch operations** for multiple networks
+
+### 📊 Network Analysis
+```python
+# Example: Scan available networks
+from wifi_manager import Scanner
+scanner = Scanner()
+networks = scanner.get_available_ssids()
